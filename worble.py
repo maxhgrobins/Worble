@@ -1,3 +1,4 @@
+from cgitb import reset
 import tkinter as tk
 from functools import partial
 import random
@@ -39,18 +40,12 @@ def wordgen(word_len):
         random.seed()
         return word
 
-def newgame(box,btn):
+def reset_board(box,btn):
     global current_row
     global current_col
-    global word
-    
-    difficulty = 5
 
     current_row = 0
     current_col = 0
-
-    word = wordgen(difficulty)
-    wordvar.set(word)
 
     for x in range(6):
         for y in range(5):
@@ -59,39 +54,45 @@ def newgame(box,btn):
     for key in btn:
         key.config(bg=keycol, fg =keytextcol, state="normal")
 
-    winframe.place_forget()
-    loseframe.place_forget()
-    startframe.place_forget()
+    enter_btn.config(state="normal")
+    back_btn.config(state="normal")
+
+    hide_frame(winframe)
+    hide_frame(loseframe)
+    hide_frame(startframe)
+
+def newgame(box,btn):
+    global word
+    
+    difficulty = 5
+
+    word = wordgen(difficulty)
+    wordvar.set(word)
+
+    reset_board(box,btn)
 
     win_btn["text"] = "play again"
     lose_btn["text"] = "try again"
 
 def newdaily(box,btn):
-    global current_row
-    global current_col
     global word
-
-    current_row = 0
-    current_col = 0
 
     current_date = datetime.now(timezone.utc)
     seed = current_date.year + current_date.month + current_date.day
     word = wordgen(seed)
     wordvar.set(word)
 
-    for x in range(6):
-        for y in range(5):
-            box[x][y].config(text="",font=("Helvetica", 20),bg=keycol, fg=keytextcol)
-
-    for key in btn:
-        key.config(bg=keycol, fg =keytextcol, state="normal")
-
-    winframe.place_forget()
-    loseframe.place_forget()
-    startframe.place_forget()
+    reset_board(box,btn)
 
     win_btn["text"] = "free play"
     lose_btn["text"] = "free play"
+
+def hide_frame(widget):
+    widget.place_forget()
+
+def show_frame(widget):
+    widget.place(in_=bf, anchor="c", relx=.5, rely=.5)
+    helpframe.lift()
 
 def enter(box, btn):
     global current_row
@@ -105,7 +106,8 @@ def enter(box, btn):
         guess += letter
     
     if guess.lower() not in list(open(resource_path("5_letters.txt")).read().split()):
-        #popup saying get good
+        show_frame(errorframe)
+        root.after(2000, hide_frame, errorframe)
         return
 
     for y in range(5):
@@ -121,7 +123,7 @@ def enter(box, btn):
                     btn[btn_list.index(letter)].config(bg=partialcol)
         else:
             letter_box.config(bg=wrongcol)
-            btn[btn_list.index(letter)].config(bg=wrongcol, state="disabled")
+            btn[btn_list.index(letter)].config(bg=wrongcol)
 
     if guess == word:
         win()
@@ -143,16 +145,16 @@ def delete(box):
         current_col -= 1
 
 def win():
-    winframe.place(in_=bf, anchor="c", relx=.5, rely=.5)
+    show_frame(winframe)
 
 def lose():
-    loseframe.place(in_=bf, anchor="c", relx=.5, rely=.5)
+    show_frame(loseframe)
 
 
 root = tk.Tk()
 root['bg'] = bgcol
 root.title("worble")
-root.iconbitmap(resource_path("worbleA.ico"))
+root.iconbitmap(resource_path("worbleW.ico"))
 
 # create a labeled frame for the keypad buttons
 # relief='groove' and labelanchor='nw' are default
@@ -205,34 +207,34 @@ for label in btn_list:
         r += 1
         cs=2
 
+
 enter = partial(enter, box, btn)
 delete = partial(delete, box)
 
-# create the button
+# create and position button
 back_btn = tk.Button(lf, text="back", width=5, bg=wrongcol, fg="white", font=("Helvetica"), command=delete)
-# position the button
 back_btn.grid(row=10, column=0, columnspan = 2, sticky='nsw')
+back_btn.config(state="disabled")
 
-# create the button
+# create and position button
 enter_btn = tk.Button(lf, text="enter", width=5, bg=correctcol, fg="white", font=("Helvetica"), command=enter)
-# position the button
 enter_btn.grid(row=10, column=8, columnspan = 2, sticky='nse')
+enter_btn.config(state="disabled")
 
 
+# win frame
 winframe = tk.Frame(bf, bg= correctcol, width=250, height=500,borderwidth=2,relief="raised")
-#winframe.place(in_=bf, anchor="c", relx=.5, rely=.5)
 
 wintext = tk.Label(winframe, text="YOU WIN :)", font="Helvetica 20", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken")
 wintext.grid(row=0,column=0,padx=20,pady=20,ipadx=5,ipady=5)
 
-# create the button
+# create and position button
 win_btn = tk.Button(winframe, text="play again", bg=correctcol, fg="white", font=("Helvetica"), command=partial(newgame,box,btn))
-# position the button
 win_btn.grid(row=1, column=0,padx=20,pady=20)
 
 
+# lose frame
 loseframe = tk.Frame(bf, bg= wrongcol, width=250, height=500,borderwidth=2,relief="raised")
-#loseframe.place(in_=bf, anchor="c", relx=.5, rely=.5)
 
 losetext = tk.Label(loseframe, text="you lose :(", font="Helvetica 20", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken")
 losetext.grid(row=0,column=0,padx=20,pady=20,ipadx=5,ipady=5)
@@ -242,14 +244,33 @@ wordvar = tk.StringVar()
 answertext = tk.Label(loseframe, textvariable=wordvar, font="Helvetica 20", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken")
 answertext.grid(row=2,column=0,padx=20,pady=20,ipadx=5,ipady=5)
 
-# create the button
+# create and position button
 lose_btn = tk.Button(loseframe, text="try again", fg="white", font=("Helvetica"), bg=correctcol, command=partial(newgame,box,btn))
-# position the button
 lose_btn.grid(row=1,column=0,padx=20,pady=20)
 
 
+# help frame
+helpframe = tk.Frame(bf, bg=bgcol, width=250, height=500,borderwidth=2,relief="raised")
+
+helptext = tk.Label(helpframe, text="""Try and guess the word in 6 tries.
+                                        
+After entering a guess, the colour of the letters will signal how close you were.
+
+Green   -   correct letter, correct position
+Yellow  -   correct letter, incorrect position
+Black   -   incorrect letter, incorrect position
+
+Happy worbling!""", font="Helvetica 10", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken",wraplength=280, justify="left")
+helptext.grid(row=0,column=0,padx=2,pady=2,ipadx=10,ipady=10)
+
+# create and position button
+help_back_btn = tk.Button(helpframe, text="back", fg="white", font=("Helvetica"), bg=correctcol, command=lambda:[show_frame(startframe),hide_frame(helpframe)])
+help_back_btn.grid(row=1,column=0,padx=20,pady=20)
+
+
+# start frame
 startframe = tk.Frame(bf, bg=bgcol, width=250, height=500,borderwidth=2,relief="raised")
-startframe.place(in_=bf, anchor="c", relx=.5, rely=.5)
+show_frame(startframe)
 
 starttext = tk.Label(startframe, text="worble", font="Helvetica 20", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken")
 starttext.grid(row=0,column=0,padx=2,pady=(20,2),ipadx=5,ipady=5)
@@ -257,14 +278,23 @@ starttext.grid(row=0,column=0,padx=2,pady=(20,2),ipadx=5,ipady=5)
 credstext = tk.Label(startframe, text="created by max\n inspired by 'Wordle' by Josh Wardle @powerlanguish", font="Helvetica 7", fg=keytextcol,bg=bgcol)
 credstext.grid(row=1,column=0,padx=20,pady=2)
 
-# create the button
-go_btn = tk.Button(startframe, text="free play", fg="white", font=("Helvetica"), bg=correctcol, command=partial(newgame,box,btn))
-# position the button
+# create and position button
+go_btn = tk.Button(startframe, text="free play", fg="white", font=("Helvetica"), width = 10, bg=correctcol, command=partial(newgame,box,btn))
 go_btn.grid(row=2,column=0,padx=20,pady=20)
 
-# create the button
-daily_btn = tk.Button(startframe, text="daily worble", fg="white", font=("Helvetica"), bg=correctcol, command=partial(newdaily,box,btn))
-# position the button
+# create and position button
+daily_btn = tk.Button(startframe, text="daily worble", fg="white", font=("Helvetica"), width = 10, bg=correctcol, command=partial(newdaily,box,btn))
 daily_btn.grid(row=3,column=0,padx=20,pady=20)
+
+# create and position button
+htp_btn = tk.Button(startframe, text="how to play", fg="white", font=("Helvetica"), width = 10, bg=correctcol, command=lambda:[show_frame(helpframe),hide_frame(startframe)])
+htp_btn.grid(row=4,column=0,padx=20,pady=20)
+
+
+# error frame
+errorframe = tk.Frame(bf, bg=bgcol, width=250, height=500,borderwidth=2,relief="raised")
+
+errortext = tk.Label(errorframe, text="not in word list", font="Helvetica 20", fg=keytextcol,bg=keycol,borderwidth=2,relief="sunken")
+errortext.grid(row=0,column=0,padx=2,pady=(2),ipadx=5,ipady=5)
 
 root.mainloop()
