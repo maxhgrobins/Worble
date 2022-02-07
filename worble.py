@@ -154,7 +154,10 @@ def lose():
 root = tk.Tk()
 root['bg'] = bgcol
 root.title("worble")
-root.iconbitmap(resource_path("worbleW.ico"))
+try:
+  root.iconbitmap(resource_path("worbleW.ico"))
+except:
+  pass
 
 # create a labeled frame for the keypad buttons
 # relief='groove' and labelanchor='nw' are default
